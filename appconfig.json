@@ -1,0 +1,7 @@
+{
+    "name": "Chpk Trail extension",
+    "provider": "SAP FSM",
+    "description": "Trails to check",   
+    "version": "1.0.0", 
+    "icon": "phone-call.png"
+}
