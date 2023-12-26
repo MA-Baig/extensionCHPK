@@ -21,8 +21,8 @@ function initializeRefreshTokenStrategy(shellSdk, auth) {
 }
 
 function getActivityContext(cloudHost, account, company, activity_id) {
-    let addressUrl = 'https://us.coresystems.com/api/query/v1?&account=chpk_T1&company=SD1CLNT110-CU&dtos=Activity.43';
-    const headers = {
+    let addressUrl = `https://ds.coresuite.com/ds/api/directory/v1/accounts/${encodeURIComponent(account)}`;
+    const header = {
         'Content-Type': 'application/json',
         'X-Client-ID': '000179c6-c140-44ec-b48e-b447949fd5c9',
         'X-Client-Version': '1.0',
@@ -36,14 +36,15 @@ function getActivityContext(cloudHost, account, company, activity_id) {
     return new Promise(resolve => {
         // Fetch Activity object
         fetch(addressUrl, {
-            method: method,
-            headers: headers,
-            body: body
+            method: "GET",
+            headers: header
         }).then(response => {
             debugger
             response.json()
         }).then(json => {
             console.log(json);
+        }).catch(err => {
+            console.log(err);
         })
     })
 }
