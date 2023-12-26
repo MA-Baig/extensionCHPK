@@ -21,22 +21,30 @@ function initializeRefreshTokenStrategy(shellSdk, auth) {
 }
 
 function getActivityContext(cloudHost, account, company, activity_id) {
+    let addressUrl = 'https://us.coresystems.com/api/query/v1?&account=chpk_T1&company=SD1CLNT110-CU&dtos=Activity.43';
     const headers = {
         'Content-Type': 'application/json',
-        'X-Client-ID': 'sap-fsm-extension',
-        'X-Client-Version': '1.0.0',
+        'X-Client-ID': '000179c6-c140-44ec-b48e-b447949fd5c9',
+        'X-Client-Version': '1.0',
         'Authorization': `bearer ${sessionStorage.getItem('token')}`,
     };
-
+    let url = `https://${cloudHost}/api/data/v4/Activity/${activity_id}?dtos=Activity.43&account=${account}&company=${company}`
+    let body = JSON.stringify({
+        "query" : "SELECT a from Activity a"
+    });
+    let method = 'POST';
     return new Promise(resolve => {
         // Fetch Activity object
-        fetch(`https://${cloudHost}/api/data/v4/Activity/${activity_id}?dtos=Activity.43&account=${account}&company=${company}`, {
-            headers
+        fetch(addressUrl, {
+            method: method,
+            headers: headers,
+            body: body
         }).then(response => {
             debugger
             response.json()
         }).then(json => {
-
+            console.log(json);
         })
     })
 }
+
