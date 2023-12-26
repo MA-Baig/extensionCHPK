@@ -69,7 +69,7 @@
                 // Add a listenner expecting activityID
                 shellSdk.onViewState('activityID', async activityID => {
                     debugger
-                    let response = await getActivityContext(cloudHost, account, company, activityID);
+                    let response = await getActivityContext(cloudHost, account, company, activityID, JSON.parse(event));
 
                     updateWarning("Step1 Reached");
                 });
