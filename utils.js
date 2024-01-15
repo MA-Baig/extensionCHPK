@@ -40,7 +40,7 @@ function isInsideShell(FSMShell) {
 }
 
 // Loop before a token expire to fetch a new one
-async function initializeRefreshTokenStrategy(shellSdk, auth, comapnyObject) {
+async function initializeRefreshTokenStrategy(shellSdk, SHELL_EVENTS, auth, comapnyObject) {
     shellSdk.on(SHELL_EVENTS.Version1.REQUIRE_AUTHENTICATION, (event) => {
         sessionStorage.setItem('token', event.access_token);
         setTimeout(() => fetchToken(), (event.expires_in * 1000) - 10000);
