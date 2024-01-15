@@ -104,10 +104,12 @@ function onTimeClick() {
     }
 }
 
-function onTimerSave() {
+async function onTimerSave() {
     document.getElementById('timerId').style.display = 'none';
     enableControls();
     // Here we've to fetch the data with the previousInputValue as the timer
+    await fetchData('emergencyList', globalCompanyObject);
+    await fetchData('sameDayList', globalCompanyObject);
 }
 
 function onTimerCancel() {

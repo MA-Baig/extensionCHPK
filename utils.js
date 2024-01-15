@@ -1,3 +1,4 @@
+var globalCompanyObject;
 function updateWarning(text) {
     document.getElementById("greet").innerHTML = text
 }
@@ -25,6 +26,7 @@ function isInsideShell(FSMShell) {
                 // extract required context from event content
                 auth
             } = JSON.parse(event);
+            globalCompanyObject = JSON.parse(event);
 
             // Access_token has a short life stpan and needs to be refreshed before expiring
             // Each extension need to implement its own strategy to fresh it.
@@ -57,9 +59,9 @@ async function fetchData(listId, comapnyObject) {
     // Next call for loading the data asynchronously time to time
     let inputValue = document.getElementById("inputId") ? document.getElementById("inputId").value : 10; // i.e default value
     let loadDataTimePeriod = Number(inputValue) * 60 * 1000; // time in milli seconds i.e 1min * 60sec * 1000ms
-    setTimeout((comapnyObject) => {
-        fetchData(comapnyObject);
-    }, loadDataTimePeriod, comapnyObject);
+    setTimeout((listId, comapnyObject) => {
+        fetchData(listId, comapnyObject);
+    }, loadDataTimePeriod, listId, comapnyObject);
 
     const { cloudHost, account, company, accountId, companyId } = comapnyObject; // extract required context from event content
 
