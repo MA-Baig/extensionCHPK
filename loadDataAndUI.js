@@ -15,30 +15,53 @@ function handleItemClick(event) {
     }
 }
 
-// Function to add items to the list
-function addItemToList(listId, link, text) {
+
+// // Function to add items to the list
+function addItemToList(listId, link, text, associatedObject={}) {
     const list = document.getElementById(listId);
     const listItem = document.createElement('li');
     const anchor = document.createElement('a');
+    
+    // Set href, text content, and target for the anchor
     anchor.href = link;
     anchor.textContent = text;
-    anchor.target = "_blank"
+    anchor.target = "_blank";
+    
+    // Set the associated object as a data attribute
+    anchor.dataset.associatedObject = JSON.stringify(associatedObject);
+
     listItem.appendChild(anchor);
     list.appendChild(listItem);
 }
 
-let isTimerUpdated = false;
+// Example usage:
+// const myObject1 = { id: 1, name: 'Object 1' };
+// const myObject2 = { id: 2, name: 'Object 2' };
 
-// Add items to the Emergency list
-addItemToList('emergencyList', 'https://www.google.com', 'Google');
-addItemToList('emergencyList', 'https://www.example.com', 'Example');
+// addItemToList('emergencyList', 'https://example.com', 'Item 1', myObject1);
+// addItemToList('sameDayList', 'https://example.com', 'Item 2', myObject2);
 
-// Add items to the Same Day list
-addItemToList('sameDayList', 'https://www.apple.com', 'Apple');
-addItemToList('sameDayList', 'https://www.microsoft.com', 'Microsoft');
+
+function createMapUrlAndAddItemToList(listId, responseData, cloudHost) {
+    if (responseData && responseData.data && responseData.data.length) {
+        let paramsArray = responseData.data.forEach((dataObj) => {
+            let {act, scall, add} = dataObj;
+            // URL to make - https://us.coresystems.net/shell/#/planning-dispatching/map/date/latitude,longitude/activities/activityId
+            let {latitude, longitude} = add.location ? add.location : {latitude: 0, longitude: 0}; // if there's no lat and long data, we're defauilting to 0 & 0 so as to avoid the failure case
+            let {id: activityId, createDateTime, code} = act;
+            let mapDate = createDateTime ? createDateTime.substring(0, 10) : new Date().toISOString().substring(0, 10);
+            let mapUrlForCurrentActivity = `https://${cloudHost}/shell/#/planning-dispatching/map/${mapDate}/${latitude},${longitude}/activities/${activityId}`;
+            let itemText = `${code} - Map`;
+            addItemToList(listId, mapUrlForCurrentActivity, itemText);
+        })
+    }
+}
+
 
 
 document.getElementById('timeLink').addEventListener('click', onTimeClick);
+let isTimerUpdated = false;
+let previousInputValue;
 
 function onTimeClick() {
     if (!isTimerUpdated) {
@@ -49,9 +72,11 @@ function onTimeClick() {
     
         // Create a new input control
         const inputControl = document.createElement('input');
+        inputControl.setAttribute('id','inputId');
         inputControl.placeholder = 'Enter time...';
         inputControl.type = 'text'; // Use 'text' to allow pattern validation
         inputControl.value = 10;
+        previousInputValue = 10;
     
         // Validate and sanitize input on each change
         inputControl.addEventListener('input', function () {
@@ -96,11 +121,14 @@ function onTimeClick() {
 function onTimerSave() {
     document.getElementById('timerId').style.display = 'none';
     enableControls();
+    // Here we've to fetch the data with the previousInputValue as the timer
 }
 
 function onTimerCancel() {
+    document.getElementById('inputId').value = previousInputValue;
     document.getElementById('timerId').style.display = 'none';
     enableControls();
+    // Dont fetch any data
 }
 
 

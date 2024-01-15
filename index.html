@@ -1,13 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="extensionStyles.css">
-    <title>Learn FSM</title>
+    <title>FSM Extension</title>
 </head>
-
 <body>
     <div>
         <h3 id="greet">Hello FSM</h3>
@@ -27,55 +25,11 @@
     </div>
 
     <script src="https://unpkg.com/fsm-shell"></script>
-    <script src="script.js"></script>
+    <script src="loadDataAndUI.js"></script>
     <script src="utils.js"></script>
-
     <script>
-        const { ShellSdk, SHELL_EVENTS } = FSMShell;
-        if (!ShellSdk.isInsideShell()) {
-            updateWarning('⚠️ Unable to reach shell event API');
-        } else {
-            // Initialise ShellSDK to connect with parent shell library
-            const shellSdk = ShellSdk.init(parent, '*');
-
-            // Initialise the extension by requesting the fsm context
-            shellSdk.emit(SHELL_EVENTS.Version1.REQUIRE_CONTEXT, {
-
-                clientIdentifier: '000179c6-c140-44ec-b48e-b447949fd5c9',
-                clientSecret: '46342ddc-22aa-4f11-98a7-e9032b55477f',
-
-                auth: {
-                    response_type: 'token'  // request a user token within the context
-                }
-            });
-
-            // Callback on fsm context response
-            shellSdk.on(SHELL_EVENTS.Version1.REQUIRE_CONTEXT, (event) => {
-                debugger
-                const {
-                    // extract required context from event content
-                    cloudHost,
-                    account,
-                    company,
-                    user,
-                    // extract authentication data from event content
-                    auth
-                } = JSON.parse(event);
-
-                // Access_token has a short life stpan and needs to be refreshed before expiring
-                // Each extension need to implement its own strategy to fresh it.
-                initializeRefreshTokenStrategy(shellSdk, auth);
-
-                // Add a listenner expecting activityID
-                shellSdk.onViewState('activityID', async activityID => {
-                    debugger
-                    let response = await getActivityContext(cloudHost, account, company, activityID, JSON.parse(event));
-
-                    updateWarning("Step1 Reached");
-                });
-            });
-        }
+        isInsideShell(FSMShell);
     </script>
-</body>
 
+</body>
 </html>
