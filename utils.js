@@ -23,18 +23,12 @@ function isInsideShell(FSMShell) {
         shellSdk.on(SHELL_EVENTS.Version1.REQUIRE_CONTEXT, (event) => {
             const {
                 // extract required context from event content
-                cloudHost,
-                account,
-                company,
-                user,
-                auth,
-                accountId,
-                companyId
+                auth
             } = JSON.parse(event);
 
             // Access_token has a short life stpan and needs to be refreshed before expiring
             // Each extension need to implement its own strategy to fresh it.
-            initializeRefreshTokenStrategy(shellSdk, auth, JSON.parse(event));
+            initializeRefreshTokenStrategy(shellSdk, SHELL_EVENTS, auth, JSON.parse(event));
         });
     }
 }
