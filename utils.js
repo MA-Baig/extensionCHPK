@@ -55,7 +55,8 @@ async function initializeRefreshTokenStrategy(shellSdk, SHELL_EVENTS, auth, coma
 
 async function fetchData(listId, comapnyObject) {
     // Next call for loading the data asynchronously time to time
-    let loadDataTimePeriod = Number(document.getElementById("inputId").value) * 60 * 1000; // time in milli seconds i.e 1min * 60sec * 1000ms
+    let inputValue = document.getElementById("inputId") ? document.getElementById("inputId").value : 10; // i.e default value
+    let loadDataTimePeriod = Number(inputValue) * 60 * 1000; // time in milli seconds i.e 1min * 60sec * 1000ms
     setTimeout((comapnyObject) => {
         fetchData(comapnyObject);
     }, loadDataTimePeriod, comapnyObject);
