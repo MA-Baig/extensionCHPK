@@ -2,20 +2,6 @@
 const emergencyList = document.getElementById('emergencyList');
 const sameDayList = document.getElementById('sameDayList');
 
-// Add click event listeners to the lists
-emergencyList.addEventListener('click', handleItemClick);
-sameDayList.addEventListener('click', handleItemClick);
-
-function handleItemClick(event) {
-    // Check if the clicked element is an anchor
-    if (event.target.tagName === 'A') {
-        // Get the href attribute of the clicked anchor
-        const clickedItem = event.target.getAttribute('href');
-        alert(`Pressed item: ${clickedItem}`);
-    }
-}
-
-
 // // Function to add items to the list
 function addItemToList(listId, link, text, associatedObject={}) {
     const list = document.getElementById(listId);
