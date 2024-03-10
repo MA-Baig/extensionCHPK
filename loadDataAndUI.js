@@ -35,10 +35,10 @@ function createMapUrlAndAddItemToList(listId, responseData, cloudHost) {
                 let {act, scall, add} = dataObj;
                 // URL to make - https://us.coresystems.net/shell/#/planning-dispatching/map/date/latitude,longitude/activities/activityId
                 let {latitude, longitude} = add.location ? add.location : {latitude: 0, longitude: 0}; // if there's no lat and long data, we're defauilting to 0 & 0 so as to avoid the failure case
-                let {id: activityId, createDateTime, code} = act;
-                let mapDate = createDateTime ? createDateTime.substring(0, 10) : new Date().toISOString().substring(0, 10);
-                let mapUrlForCurrentActivity = `https://us.coresystems.net/shell/#/planning-dispatching/map/${mapDate}/${latitude},${longitude}/activities/${activityId}`;
-                let itemText = `${code} - Map`;
+                let {id: activityId, code} = act;
+                let mapDate = new Date().toISOString().substring(0, 10);
+                let mapUrlForCurrentActivity = `https://us.coresystems.net/shell/#/planning-dispatching/map/${mapDate}/${latitude},${longitude},z11/activities/${activityId}`;
+                let itemText = `${scall.code} - Map`;
                 addItemToList(listId, mapUrlForCurrentActivity, itemText);
             } catch (error) {
                 let err;
@@ -110,10 +110,12 @@ function onTimeClick() {
 
 async function onTimerSave() {
     document.getElementById('timerId').style.display = 'none';
+    document.getElementById("emergencyList").innerHTML = '';
+    document.getElementById("sameDayList").innerHTML = '';
+
+    clearTimeout(globalTimeOutId);
     enableControls();
-    // Here we've to fetch the data with the previousInputValue as the timer
-    await fetchData('emergencyList', globalCompanyObject);
-    await fetchData('sameDayList', globalCompanyObject);
+    refreshTokenNFetchData(shellReferenceObject["shellSdk"], shellReferenceObject["SHELL_EVENTS"], globalCompanyObject)
 }
 
 function onTimerCancel() {

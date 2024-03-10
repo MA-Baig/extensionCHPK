@@ -1,4 +1,7 @@
 var globalCompanyObject;
+var shellReferenceObject = {};
+var globalTimeOutId;
+
 function updateWarning(text) {
     document.getElementById("greet").innerHTML = text
 }
@@ -30,41 +33,40 @@ function isInsideShell(FSMShell) {
 
             // Access_token has a short life stpan and needs to be refreshed before expiring
             // Each extension need to implement its own strategy to fresh it.
-            initializeRefreshTokenStrategy(shellSdk, SHELL_EVENTS, auth, JSON.parse(event));
+            shellReferenceObject["shellSdk"] = shellSdk;
+            shellReferenceObject["SHELL_EVENTS"] = SHELL_EVENTS;
+            shellReferenceObject["jsonEvent"] = JSON.parse(event);
+            refreshTokenNFetchData(shellSdk, SHELL_EVENTS, globalCompanyObject);
         });
     }
 }
 
-// Loop before a token expire to fetch a new one
-async function initializeRefreshTokenStrategy(shellSdk, SHELL_EVENTS, auth, comapnyObject) {
-    shellSdk.on(SHELL_EVENTS.Version1.REQUIRE_AUTHENTICATION, (event) => {
-        sessionStorage.setItem('token', event.access_token);
-        setTimeout(() => fetchToken(), (event.expires_in * 1000) - 10000);
+async function refreshTokenNFetchData(shellSdk, SHELL_EVENTS, globalCompanyObject) {
+    clearTimeout(globalTimeOutId); // Here we clear the previous timeout id that's stored
+
+    // Request for the new token
+    shellSdk.emit(SHELL_EVENTS.Version1.REQUIRE_AUTHENTICATION, {
+        response_type: 'token'
     });
 
-    function fetchToken() {
-        shellSdk.emit(SHELL_EVENTS.Version1.REQUIRE_AUTHENTICATION, {
-            response_type: 'token'  // request a user token within the context
-        });
-    }
+    // Response for the request
+    shellSdk.on(SHELL_EVENTS.Version1.REQUIRE_AUTHENTICATION, async (event) => {
+        sessionStorage.setItem('token', event.access_token);
 
-    sessionStorage.setItem('token', auth.access_token);
-    setTimeout(() => fetchToken(), (auth.expires_in * 1000) - 10000);
+        // Next call for loading the data asynchronously time to time
+        let inputValue = document.getElementById("inputId") ? document.getElementById("inputId").value : 10; // i.e default value
+        let loadDataTimePeriod = Number(inputValue) * 60 * 1000; // time in milli seconds i.e 1min * 60sec * 1000ms
+        let id = setTimeout((shellSdk, SHELL_EVENTS, globalCompanyObject) => { refreshTokenNFetchData(shellSdk, SHELL_EVENTS, globalCompanyObject); }, loadDataTimePeriod, shellSdk, SHELL_EVENTS, globalCompanyObject);
+        globalTimeOutId = id;
 
-    await fetchData('emergencyList', comapnyObject); // For Emergency orders
-    await fetchData('sameDayList', comapnyObject); // For Same day orders
+        // Load the same day list first, so that rest of the code need not wait for execution untill the dispatcher doesn't closes the alert window
+        await fetchData('sameDayList', comapnyObject, { "query": "select act.id, act.createDateTime, act.code, scall.code, scall.subject, add.location, add.location from ServiceCall scall INNER JOIN Activity act ON act.object.objectId = scall.id INNER JOIN Address add ON add.id = act.address WHERE scall.priority = 'HIGH' AND scall.typeCode != 'GEMR' AND act.status = 'DRAFT' AND act.executionStage = 'DISPATCHING'" }); // For Same day orders
+        await fetchData('emergencyList', comapnyObject, { "query": "select rr.id,rr.code, act.id,act.udf.ZZEMRALERT , act.externalId , act.startDateTime, act.code, act.timeZoneId, scall.code, scall.subject, scall.createDateTime, add.location, eq.id as equipment_id from ServiceCall scall INNER JOIN Activity act ON act.object.objectId = scall.id INNER JOIN Address add ON add.id = act.address INNER JOIN Region rr ON rr.id = act.region INNER JOIN Equipment eq ON eq.id = act.equipment WHERE scall.priority = 'HIGH' AND scall.typeCode = 'GEMR' AND act.status = 'DRAFT' AND act.executionStage = 'DISPATCHING'" }); // For Emergency orders
+    });
 }
 
-async function fetchData(listId, comapnyObject) {
-    // Next call for loading the data asynchronously time to time
-    let inputValue = document.getElementById("inputId") ? document.getElementById("inputId").value : 10; // i.e default value
-    let loadDataTimePeriod = Number(inputValue) * 60 * 1000; // time in milli seconds i.e 1min * 60sec * 1000ms
-    setTimeout((listId, comapnyObject) => {
-        fetchData(listId, comapnyObject);
-    }, loadDataTimePeriod, listId, comapnyObject);
-
+async function fetchData(listId, comapnyObject, queryObj) {
     const { cloudHost, account, company, accountId, companyId } = comapnyObject; // extract required context from event content
-
     const header = {
         "Content-Type": "application/json",
         "X-Client-ID": "000179c6-c140-44ec-b48e-b447949fd5c9",
@@ -73,8 +75,8 @@ async function fetchData(listId, comapnyObject) {
         "X-Account-ID": accountId,
         "X-Company-ID": companyId
     };
-    let url = `https://${cloudHost}/api/query/v1?account=${account}&company=${company}&dtos=Activity.43;ServiceCall.27;Address.22`
-    let body = JSON.stringify({ "query": "SELECT act, scall, add FROM Activity act JOIN ServiceCall scall ON scall.id = act.object.objectId JOIN Address add ON add.id = act.address"});
+    let url = `https://${cloudHost}/api/query/v1?account=${account}&company=${company}&dtos=Activity.43;ServiceCall.27;Address.22;Region.9;Equipment.24`
+    let body = JSON.stringify(queryObj);
     let method = 'POST';
 
     try {
@@ -83,10 +85,84 @@ async function fetchData(listId, comapnyObject) {
             headers: header,
             body: body
         });
+        if (!response.ok) {throw false};
+
         let jsonResponse = await response.json();
+        document.getElementById(listId).innerHTML = '';
         createMapUrlAndAddItemToList(listId, jsonResponse, cloudHost);
+
+        if (listId === 'emergencyList' && jsonResponse.data && jsonResponse.data.length > 0){
+            updateCallForAlert(jsonResponse, comapnyObject);
+        }
+
         return true
     } catch (error) {
-        return alert(`Failed to fetch the data due to ${error} \n Reload the page manually`);
+        document.getElementById('emergencyList').innerHTML = '';
+        document.getElementById('sameDayList').innerHTML = '';
+        
+        clearTimeout(globalTimeOutId);
+        refreshTokenNFetchData(shellReferenceObject["shellSdk"], shellReferenceObject["SHELL_EVENTS"], shellReferenceObject["jsonEvent"]);
     }
+}
+
+function updateCallForAlert(jsonResponse, comapnyObject) {
+    jsonResponse.data.forEach(async data => {
+        let {scall, rr, act, equipment_id } = data;
+        let premise = equipment_id ? "Dispatcher Area" : "Off-Premise";
+        if (act && Array.isArray(act.udfValues)){
+        let ZZEMRALERT = act.udfValues.find(udf => udf.name === "ZZEMRALERT");
+            if (ZZEMRALERT && ZZEMRALERT.value === "false") {
+                //Construct the PATCH request body
+                let patchRequestBody = {
+                    "udfValues": [
+                        {
+                            "meta": {
+                                "externalId": "ZZEMRALERT"
+                            },
+                            "value": true
+                        }
+                    ]
+                };
+                await postUpdatedZZEMRALERTValue(comapnyObject, patchRequestBody, act);
+           }
+        }
+    });
+}
+
+async function postUpdatedZZEMRALERTValue(comapnyObject, patchRequestBody, act) {
+    // Request new token and then update the property to the server
+    let [ shellSdk, SHELL_EVENTS ] = [ shellReferenceObject["shellSdk"], shellReferenceObject["SHELL_EVENTS"] ];
+    shellSdk.emit(SHELL_EVENTS.Version1.REQUIRE_AUTHENTICATION, {
+        response_type: 'token'
+    });
+
+    shellSdk.on(SHELL_EVENTS.Version1.REQUIRE_AUTHENTICATION, async (event) => {
+        sessionStorage.setItem('token', event.access_token);
+
+        const { cloudHost, accountId, companyId } = comapnyObject;
+        const header = {
+            "Content-Type": "application/json",
+            "X-Client-ID": "000179c6-c140-44ec-b48e-b447949fd5c9",
+            "X-Client-Version": "1.0",
+            "Authorization": `bearer ${sessionStorage.getItem('token')}`,
+            "X-Account-ID": accountId,
+            "X-Company-ID": companyId
+        };
+        let url = `https://${cloudHost}/api/data/v4/Activity/externalId/${act.externalId}?dtos=Activity.43&forceUpdate=true`;
+        let body = JSON.stringify(patchRequestBody);
+        let method = 'PATCH';
+        // Make the POST request to update the ZZEMRALERT value
+        const response = await fetch(url, {
+            method: method,
+            headers: header,
+            body: body
+        });
+
+        if (response.ok) {
+            const responseData = await response.json();
+            console.log('Updated ZZEMRALERT value:', responseData);
+        };
+
+        alert(`New Emergency Received Service Order #${scall.code}, Work Center: ${rr.code.substring(8)}, Premise: ${premise}`);
+    });
 }
