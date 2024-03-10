@@ -44,6 +44,7 @@ function isInsideShell(FSMShell) {
 async function refreshTokenNFetchData(shellSdk, SHELL_EVENTS, globalCompanyObject) {
     if (globalTimeOutId) {
         clearTimeout(globalTimeOutId);
+        shellSdk.off(SHELL_EVENTS.Version1.REQUIRE_AUTHENTICATION, responseHandlerFunction);
     }
 
     // Request for the new token
@@ -51,8 +52,7 @@ async function refreshTokenNFetchData(shellSdk, SHELL_EVENTS, globalCompanyObjec
         response_type: 'token'
     });
 
-    // Response for the request
-    shellSdk.on(SHELL_EVENTS.Version1.REQUIRE_AUTHENTICATION, async (event) => {
+    const responseHandlerFunction = async (event) => {
         sessionStorage.setItem('token', event.access_token);
 
         // Next call for loading the data asynchronously time to time
@@ -65,7 +65,10 @@ async function refreshTokenNFetchData(shellSdk, SHELL_EVENTS, globalCompanyObjec
         // Load the same day list first, so that rest of the code need not wait for execution untill the dispatcher doesn't closes the alert window
         // await fetchData('sameDayList', globalCompanyObject, { "query": "select act.id, act.createDateTime, act.code, scall.code, scall.subject, add.location, add.location from ServiceCall scall INNER JOIN Activity act ON act.object.objectId = scall.id INNER JOIN Address add ON add.id = act.address WHERE scall.priority = 'HIGH' AND scall.typeCode != 'GEMR' AND act.status = 'DRAFT' AND act.executionStage = 'DISPATCHING'" }); // For Same day orders
         // await fetchData('emergencyList', globalCompanyObject, { "query": "select rr.id,rr.code, act.id,act.udf.ZZEMRALERT , act.externalId , act.startDateTime, act.code, act.timeZoneId, scall.code, scall.subject, scall.createDateTime, add.location, eq.id as equipment_id from ServiceCall scall INNER JOIN Activity act ON act.object.objectId = scall.id INNER JOIN Address add ON add.id = act.address INNER JOIN Region rr ON rr.id = act.region INNER JOIN Equipment eq ON eq.id = act.equipment WHERE scall.priority = 'HIGH' AND scall.typeCode = 'GEMR' AND act.status = 'DRAFT' AND act.executionStage = 'DISPATCHING'" }); // For Emergency orders
-    });
+    }
+
+    // Response for the request
+    shellSdk.on(SHELL_EVENTS.Version1.REQUIRE_AUTHENTICATION, responseHandlerFunction);
 }
 
 async function fetchData(listId, comapnyObject, queryObj) {
