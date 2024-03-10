@@ -56,7 +56,9 @@ async function refreshTokenNFetchData(shellSdk, SHELL_EVENTS, globalCompanyObjec
         // Next call for loading the data asynchronously time to time
         let inputValue = document.getElementById("inputId") ? document.getElementById("inputId").value : 10; // i.e default value
         let loadDataTimePeriod = Number(inputValue) * 60 * 1000; // time in milli seconds i.e 1min * 60sec * 1000ms
-        let id = setTimeout((shellSdk, SHELL_EVENTS, globalCompanyObject) => { refreshTokenNFetchData(shellSdk, SHELL_EVENTS, globalCompanyObject); }, loadDataTimePeriod, shellSdk, SHELL_EVENTS, globalCompanyObject);
+        let id = setTimeout((shellSdk, SHELL_EVENTS, globalCompanyObject) => { 
+            refreshTokenNFetchData(shellSdk, SHELL_EVENTS, globalCompanyObject); 
+        }, loadDataTimePeriod, shellSdk, SHELL_EVENTS, globalCompanyObject);
         globalTimeOutId = id;
 
         // Load the same day list first, so that rest of the code need not wait for execution untill the dispatcher doesn't closes the alert window
