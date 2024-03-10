@@ -1,6 +1,6 @@
 var globalCompanyObject;
 var shellReferenceObject = {};
-var globalTimeOutId;
+let globalTimeOutId;
 
 function updateWarning(text) {
     document.getElementById("greet").innerHTML = text
@@ -42,7 +42,9 @@ function isInsideShell(FSMShell) {
 }
 
 async function refreshTokenNFetchData(shellSdk, SHELL_EVENTS, globalCompanyObject) {
-    clearTimeout(globalTimeOutId); // Here we clear the previous timeout id that's stored
+    if (globalTimeOutId) {
+        clearTimeout(globalTimeOutId);
+    }
 
     // Request for the new token
     shellSdk.emit(SHELL_EVENTS.Version1.REQUIRE_AUTHENTICATION, {
@@ -56,10 +58,9 @@ async function refreshTokenNFetchData(shellSdk, SHELL_EVENTS, globalCompanyObjec
         // Next call for loading the data asynchronously time to time
         let inputValue = document.getElementById("inputId") ? document.getElementById("inputId").value : 10; // i.e default value
         let loadDataTimePeriod = Number(inputValue) * 60 * 1000; // time in milli seconds i.e 1min * 60sec * 1000ms
-        let id = setTimeout((shellSdk, SHELL_EVENTS, globalCompanyObject) => { 
+        globalTimeOutId = setTimeout((shellSdk, SHELL_EVENTS, globalCompanyObject) => { 
             refreshTokenNFetchData(shellSdk, SHELL_EVENTS, globalCompanyObject); 
         }, loadDataTimePeriod, shellSdk, SHELL_EVENTS, globalCompanyObject);
-        globalTimeOutId = id;
 
         // Load the same day list first, so that rest of the code need not wait for execution untill the dispatcher doesn't closes the alert window
         // await fetchData('sameDayList', globalCompanyObject, { "query": "select act.id, act.createDateTime, act.code, scall.code, scall.subject, add.location, add.location from ServiceCall scall INNER JOIN Activity act ON act.object.objectId = scall.id INNER JOIN Address add ON add.id = act.address WHERE scall.priority = 'HIGH' AND scall.typeCode != 'GEMR' AND act.status = 'DRAFT' AND act.executionStage = 'DISPATCHING'" }); // For Same day orders

@@ -113,7 +113,7 @@ async function onTimerSave() {
     document.getElementById("emergencyList").innerHTML = '';
     document.getElementById("sameDayList").innerHTML = '';
 
-    clearTimeout(globalTimeOutId);
+    // clearTimeout(globalTimeOutId);
     enableControls();
     refreshTokenNFetchData(shellReferenceObject["shellSdk"], shellReferenceObject["SHELL_EVENTS"], globalCompanyObject)
 }
