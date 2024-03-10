@@ -115,7 +115,11 @@ async function onTimerSave() {
 
     // clearTimeout(globalTimeOutId);
     enableControls();
-    refreshTokenNFetchData(shellReferenceObject["shellSdk"], shellReferenceObject["SHELL_EVENTS"], globalCompanyObject)
+    let [ shellSdk, SHELL_EVENTS ] = [ shellReferenceObject["shellSdk"], shellReferenceObject["SHELL_EVENTS"] ];
+    shellSdk.emit(SHELL_EVENTS.Version1.REQUIRE_AUTHENTICATION, {
+        response_type: 'token'
+    });
+    // refreshTokenNFetchData(shellReferenceObject["shellSdk"], shellReferenceObject["SHELL_EVENTS"], globalCompanyObject)
 }
 
 function onTimerCancel() {
