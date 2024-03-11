@@ -37,12 +37,16 @@ function isInsideShell(FSMShell) {
             shellReferenceObject["SHELL_EVENTS"] = SHELL_EVENTS;
             shellReferenceObject["jsonEvent"] = JSON.parse(event);
 
-            shellSdk.emit(SHELL_EVENTS.Version1.REQUIRE_AUTHENTICATION, {
-                response_type: 'token'
-            });
-            refreshTokenNFetchData(shellSdk, SHELL_EVENTS, globalCompanyObject);
+            return callbackLimiter(shellSdk, SHELL_EVENTS, globalCompanyObject);
         });
     }
+}
+
+async function callbackLimiter(shellSdk, SHELL_EVENTS, globalCompanyObject) {
+    shellSdk.emit(SHELL_EVENTS.Version1.REQUIRE_AUTHENTICATION, {
+        response_type: 'token'
+    });
+    return refreshTokenNFetchData(shellSdk, SHELL_EVENTS, globalCompanyObject);
 }
 
 async function refreshTokenNFetchData(shellSdk, SHELL_EVENTS, globalCompanyObject) {
@@ -61,7 +65,7 @@ async function refreshTokenNFetchData(shellSdk, SHELL_EVENTS, globalCompanyObjec
         let inputValue = document.getElementById("inputId") ? document.getElementById("inputId").value : 10; // i.e default value
         let loadDataTimePeriod = Number(inputValue) * 60 * 1000; // time in milli seconds i.e 1min * 60sec * 1000ms
         globalTimeOutId = setTimeout((shellSdk, SHELL_EVENTS, globalCompanyObject) => { 
-            refreshTokenNFetchData(shellSdk, SHELL_EVENTS, globalCompanyObject); 
+            callbackLimiter(shellSdk, SHELL_EVENTS, globalCompanyObject); 
         }, loadDataTimePeriod, shellSdk, SHELL_EVENTS, globalCompanyObject);
         // globalTimeOutId = id;
 
