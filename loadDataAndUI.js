@@ -20,34 +20,20 @@ function addItemToList(listId, link, text, associatedObject={}) {
     list.appendChild(listItem);
 }
 
-// Example usage:
-// const myObject1 = { id: 1, name: 'Object 1' };
-// const myObject2 = { id: 2, name: 'Object 2' };
-
-// addItemToList('emergencyList', 'https://example.com', 'Item 1', myObject1);
-// addItemToList('sameDayList', 'https://example.com', 'Item 2', myObject2);
-
-
-function createMapUrlAndAddItemToList(listId, responseData, cloudHost) {
+function createMapUrlAndAddItemToList(listId, responseData) {
     if (responseData && responseData.data && responseData.data.length) {
         let paramsArray = responseData.data.forEach((dataObj) => {
-            try {
-                let {act, scall, add} = dataObj;
-                // URL to make - https://us.coresystems.net/shell/#/planning-dispatching/map/date/latitude,longitude/activities/activityId
-                let {latitude, longitude} = add.location ? add.location : {latitude: 0, longitude: 0}; // if there's no lat and long data, we're defauilting to 0 & 0 so as to avoid the failure case
-                let {id: activityId, code} = act;
-                let mapDate = new Date().toISOString().substring(0, 10);
-                let mapUrlForCurrentActivity = `https://us.coresystems.net/shell/#/planning-dispatching/map/${mapDate}/${latitude},${longitude},z11/activities/${activityId}`;
-                let itemText = `${scall.code} - Map`;
-                addItemToList(listId, mapUrlForCurrentActivity, itemText);
-            } catch (error) {
-                let err;
-            }
+            let { act, scall, add } = dataObj;
+            // URL to make - https://us.coresystems.net/shell/#/planning-dispatching/map/date/latitude,longitude/activities/activityId
+            let { latitude, longitude } = add.location ? add.location : { latitude: 0, longitude: 0 }; // if there's no lat and long data, we're defauilting to 0 & 0 so as to avoid the failure case
+            let { id: activityId, code } = act;
+            let mapDate = new Date().toISOString().substring(0, 10);
+            let mapUrlForCurrentActivity = `https://us.coresystems.net/shell/#/planning-dispatching/map/${mapDate}/${latitude},${longitude},z11/activities/${activityId}`;
+            let itemText = `${scall.code} - Map`;
+            addItemToList(listId, mapUrlForCurrentActivity, itemText);
         })
     }
 }
-
-
 
 document.getElementById('timeLink').addEventListener('click', onTimeClick);
 let isTimerUpdated = false;
@@ -116,11 +102,9 @@ async function onTimerSave() {
     enableControls();
     let [ shellSdk, SHELL_EVENTS ] = [ shellReferenceObject["shellSdk"], shellReferenceObject["SHELL_EVENTS"] ];
     clearTimeout(globalTimeOutId);
-    shellSdk.off(SHELL_EVENTS.Version1.REQUIRE_AUTHENTICATION, refreshTokenNFetchData(shellSdk, SHELL_EVENTS, globalCompanyObject));
     shellSdk.emit(SHELL_EVENTS.Version1.REQUIRE_AUTHENTICATION, {
         response_type: 'token'
     });
-    // refreshTokenNFetchData(shellReferenceObject["shellSdk"], shellReferenceObject["SHELL_EVENTS"], globalCompanyObject)
 }
 
 function onTimerCancel() {

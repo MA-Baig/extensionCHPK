@@ -52,26 +52,21 @@ async function callbackLimiter(shellSdk, SHELL_EVENTS, globalCompanyObject) {
 async function refreshTokenNFetchData(shellSdk, SHELL_EVENTS, globalCompanyObject) {
     clearTimeout(globalTimeOutId); // Here we clear the previous timeout id that's stored
 
-    // Request for the new token
-    // shellSdk.emit(SHELL_EVENTS.Version1.REQUIRE_AUTHENTICATION, {
-    //     response_type: 'token'
-    // });
-
     // Response for the request
     shellSdk.on(SHELL_EVENTS.Version1.REQUIRE_AUTHENTICATION, async (event) => {
+        clearTimeout(globalTimeOutId);
         sessionStorage.setItem('token', event.access_token);
 
         // Next call for loading the data asynchronously time to time
         let inputValue = document.getElementById("inputId") ? document.getElementById("inputId").value : 10; // i.e default value
         let loadDataTimePeriod = Number(inputValue) * 60 * 1000; // time in milli seconds i.e 1min * 60sec * 1000ms
-        globalTimeOutId = setTimeout((shellSdk, SHELL_EVENTS, globalCompanyObject) => { 
-            // callbackLimiter(shellSdk, SHELL_EVENTS, globalCompanyObject); 
+        globalTimeOutId = setTimeout((shellSdk, SHELL_EVENTS) => {
             shellSdk.emit(SHELL_EVENTS.Version1.REQUIRE_AUTHENTICATION, {
                 response_type: 'token'
             });
-        }, loadDataTimePeriod, shellSdk, SHELL_EVENTS, globalCompanyObject);
+        }, loadDataTimePeriod, shellSdk, SHELL_EVENTS);
         
-        return fetchData(comapnyObject);
+        return fetchData(globalCompanyObject);
     });
 }
 
@@ -99,9 +94,59 @@ async function fetchData(comapnyObject) {
     let method = 'POST';
 
     return Promise.all([fetch(url, {method: method, headers: header, body: sameDayObj['body']}), fetch(url, {method: method, headers: header, body: emergencyObj['body']})]).then(responses => {
-        Promise.all(responses.map(response => response.json()))
+        return Promise.all(responses.map(response => response.json()))
     }).then(data => {
         const [data1, data2] = data;
+        document.getElementById('sameDayList').innerHTML = '';
+        createMapUrlAndAddItemToList('sameDayList', data1);
+        
+        document.getElementById('emergencyList').innerHTML = '';
+        createMapUrlAndAddItemToList('emergencyList', data2);
+
+        if (data2.data && data2.data.length > 0) {
+            data2.data.forEach(async data => {
+            let {scall, rr, act, equipment_id } = data;
+            let premise = equipment_id ? "Dispatcher Area" : "Off-Premise";
+            if (act && Array.isArray(act.udfValues)) {
+                let ZZEMRALERT = act.udfValues.find(udf => udf.name === "ZZEMRALERT");
+                if (ZZEMRALERT && ZZEMRALERT.value === "false") {
+                    //Construct the PATCH request body
+                    let patchRequestBody = {
+                        "udfValues": [
+                            {
+                                "meta": {
+                                    "externalId": "ZZEMRALERT"
+                                },
+                                "value": true
+                            }
+                        ]
+                    };
+                    const { cloudHost, accountId, companyId } = comapnyObject;
+                    const header = {
+                        "Content-Type": "application/json",
+                        "X-Client-ID": "000179c6-c140-44ec-b48e-b447949fd5c9",
+                        "X-Client-Version": "1.0",
+                        "Authorization": `bearer ${sessionStorage.getItem('token')}`,
+                        "X-Account-ID": accountId,
+                        "X-Company-ID": companyId
+                    };
+                    let url = `https://${cloudHost}/api/data/v4/Activity/externalId/${act.externalId}?dtos=Activity.43&forceUpdate=true`;
+                    let body = JSON.stringify(patchRequestBody);
+                    let method = 'PATCH';
+
+                    return Promise.resolve(fetch(url, {
+                        method: method,
+                        headers: header,
+                        body: body
+                    })).then(response => {
+                        return Promise.resolve(response.json());
+                    }).then(data => {
+                        alert(`New Emergency Received Service Order #${scall.code}, Work Center: ${rr.code.substring(8)}, Premise: ${premise}`);
+                    })
+                   }
+                }
+            });
+        }
     }).catch(error => {
         console.error('Error:', error);
     })
