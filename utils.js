@@ -70,15 +70,22 @@ async function refreshTokenNFetchData(shellSdk, SHELL_EVENTS, globalCompanyObjec
                 response_type: 'token'
             });
         }, loadDataTimePeriod, shellSdk, SHELL_EVENTS, globalCompanyObject);
-        // globalTimeOutId = id;
-
-        // Load the same day list first, so that rest of the code need not wait for execution untill the dispatcher doesn't closes the alert window
-        // await fetchData('sameDayList', globalCompanyObject, { "query": "select act.id, act.createDateTime, act.code, scall.code, scall.subject, add.location, add.location from ServiceCall scall INNER JOIN Activity act ON act.object.objectId = scall.id INNER JOIN Address add ON add.id = act.address WHERE scall.priority = 'HIGH' AND scall.typeCode != 'GEMR' AND act.status = 'DRAFT' AND act.executionStage = 'DISPATCHING'" }); // For Same day orders
-        // await fetchData('emergencyList', globalCompanyObject, { "query": "select rr.id,rr.code, act.id,act.udf.ZZEMRALERT , act.externalId , act.startDateTime, act.code, act.timeZoneId, scall.code, scall.subject, scall.createDateTime, add.location, eq.id as equipment_id from ServiceCall scall INNER JOIN Activity act ON act.object.objectId = scall.id INNER JOIN Address add ON add.id = act.address INNER JOIN Region rr ON rr.id = act.region INNER JOIN Equipment eq ON eq.id = act.equipment WHERE scall.priority = 'HIGH' AND scall.typeCode = 'GEMR' AND act.status = 'DRAFT' AND act.executionStage = 'DISPATCHING'" }); // For Emergency orders
+        
+        return fetchData(comapnyObject);
     });
 }
 
-async function fetchData(listId, comapnyObject, queryObj) {
+async function fetchData(comapnyObject) {
+    const sameDayObj = {
+        'listName' : 'sameDayList',
+        'body' : JSON.stringify({ "query": "select act.id, act.createDateTime, act.code, scall.code, scall.subject, add.location, add.location from ServiceCall scall INNER JOIN Activity act ON act.object.objectId = scall.id INNER JOIN Address add ON add.id = act.address WHERE scall.priority = 'HIGH' AND scall.typeCode != 'GEMR' AND act.status = 'DRAFT' AND act.executionStage = 'DISPATCHING'" })
+    };
+
+    const emergencyObj = {
+        'listName' : 'emergencyList',
+        'body' : JSON.stringify({ "query": "select rr.id,rr.code, act.id,act.udf.ZZEMRALERT , act.externalId , act.startDateTime, act.code, act.timeZoneId, scall.code, scall.subject, scall.createDateTime, add.location, eq.id as equipment_id from ServiceCall scall INNER JOIN Activity act ON act.object.objectId = scall.id INNER JOIN Address add ON add.id = act.address INNER JOIN Region rr ON rr.id = act.region INNER JOIN Equipment eq ON eq.id = act.equipment WHERE scall.priority = 'HIGH' AND scall.typeCode = 'GEMR' AND act.status = 'DRAFT' AND act.executionStage = 'DISPATCHING'" })
+    };
+
     const { cloudHost, account, company, accountId, companyId } = comapnyObject; // extract required context from event content
     const header = {
         "Content-Type": "application/json",
@@ -88,10 +95,18 @@ async function fetchData(listId, comapnyObject, queryObj) {
         "X-Account-ID": accountId,
         "X-Company-ID": companyId
     };
-    let url = `https://${cloudHost}/api/query/v1?account=${account}&company=${company}&dtos=Activity.43;ServiceCall.27;Address.22;Region.9;Equipment.24`
-    let body = JSON.stringify(queryObj);
+    let url = `https://${cloudHost}/api/query/v1?account=${account}&company=${company}&dtos=Activity.43;ServiceCall.27;Address.22;Region.9;Equipment.24`;
     let method = 'POST';
 
+    return Promise.all([fetch(url, {method: method, headers: header, body: sameDayObj['body']}), fetch(url, {method: method, headers: header, body: emergencyObj['body']})]).then(responses => {
+        Promise.all(responses.map(response => response.json()))
+    }).then(data => {
+        const [data1, data2] = data;
+    }).catch(error => {
+        console.error('Error:', error);
+    })
+
+    /** 
     try {
         let response = await fetch(url, {
             method: method,
@@ -116,6 +131,7 @@ async function fetchData(listId, comapnyObject, queryObj) {
         clearTimeout(globalTimeOutId);
         refreshTokenNFetchData(shellReferenceObject["shellSdk"], shellReferenceObject["SHELL_EVENTS"], shellReferenceObject["jsonEvent"]);
     }
+    */
 }
 
 function updateCallForAlert(jsonResponse, comapnyObject) {
