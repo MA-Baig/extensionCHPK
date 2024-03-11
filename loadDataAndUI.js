@@ -113,9 +113,9 @@ async function onTimerSave() {
     document.getElementById("emergencyList").innerHTML = '';
     document.getElementById("sameDayList").innerHTML = '';
 
-    // clearTimeout(globalTimeOutId);
     enableControls();
     let [ shellSdk, SHELL_EVENTS ] = [ shellReferenceObject["shellSdk"], shellReferenceObject["SHELL_EVENTS"] ];
+    clearTimeout(globalTimeOutId);
     shellSdk.emit(SHELL_EVENTS.Version1.REQUIRE_AUTHENTICATION, {
         response_type: 'token'
     });
