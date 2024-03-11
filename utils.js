@@ -65,7 +65,10 @@ async function refreshTokenNFetchData(shellSdk, SHELL_EVENTS, globalCompanyObjec
         let inputValue = document.getElementById("inputId") ? document.getElementById("inputId").value : 10; // i.e default value
         let loadDataTimePeriod = Number(inputValue) * 60 * 1000; // time in milli seconds i.e 1min * 60sec * 1000ms
         globalTimeOutId = setTimeout((shellSdk, SHELL_EVENTS, globalCompanyObject) => { 
-            callbackLimiter(shellSdk, SHELL_EVENTS, globalCompanyObject); 
+            // callbackLimiter(shellSdk, SHELL_EVENTS, globalCompanyObject); 
+            shellSdk.emit(SHELL_EVENTS.Version1.REQUIRE_AUTHENTICATION, {
+                response_type: 'token'
+            });
         }, loadDataTimePeriod, shellSdk, SHELL_EVENTS, globalCompanyObject);
         // globalTimeOutId = id;
 
